@@ -5,9 +5,9 @@ const nextConfig = {
   // Static export for GitHub Pages
   output: "export",
 
-  // GitHub Pages serves under /gc-compliance-prototype/
-  basePath: isProd ? "/gc-compliance-prototype" : "",
-  assetPrefix: isProd ? "/gc-compliance-prototype/" : "",
+  // GitHub Pages serves under /gc-prototype/
+  basePath: isProd ? "/gc-prototype" : "",
+  assetPrefix: isProd ? "/gc-prototype/" : "",
 
   // Required for static export (no Next.js image optimizer)
   images: { unoptimized: true },

@@ -12,7 +12,7 @@
 
 > ⚠️ **GitHub ownership**: репозиторий **GC Project всегда принадлежит аккаунту `tcmm9919`**. Любые операции `gh repo create / fork / transfer` для этого проекта — **только** под учёткой `tcmm9919`. Перед операциями всегда проверять `gh auth status` — активный должен быть `tcmm9919`, не `tcmms` или другой.
 >
-> **Remote**: `origin → https://github.com/tcmm9919/gc-compliance-prototype` (public, hosted via GitHub Pages).
+> **Remote**: `origin → https://github.com/tcmm9919/gc-prototype` (public, hosted via GitHub Pages).
 
 ## Документация воркспейса
 
