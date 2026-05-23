@@ -6,8 +6,9 @@ import type {
   ScenarioPreset,
   Alert,
   Case,
+  Client,
+  Rule,
   Transaction,
-  AlertStatus,
   AlertSeverity,
   CaseStatus,
   CasePriority,
@@ -45,10 +46,29 @@ interface MockStore {
   setSidebarCollapsed: (v: boolean) => void;
   setAuthed: (v: boolean) => void;
 
-  // Bulk mutations (generic patch updates)
+  // Bulk mutations (patch in-place)
   bulkUpdateAlerts: (ids: string[], patch: Partial<Alert>) => void;
   bulkUpdateCases: (ids: string[], patch: Partial<Case>) => void;
   bulkUpdateTransactions: (ids: string[], patch: Partial<Transaction>) => void;
+
+  // Remove mutations (items disappear from the list)
+  bulkRemoveAlerts: (ids: string[]) => void;
+  bulkRemoveCases: (ids: string[]) => void;
+  bulkRemoveTransactions: (ids: string[]) => void;
+
+  // Upsert/restore mutations (replace existing by id, or prepend missing — used for undo)
+  bulkUpsertAlerts: (items: Alert[]) => void;
+  bulkUpsertCases: (items: Case[]) => void;
+  bulkUpsertTransactions: (items: Transaction[]) => void;
+
+  // Client mutations
+  bulkUpdateClients: (ids: string[], patch: Partial<Client>) => void;
+  bulkUpsertClients: (items: Client[]) => void;
+
+  // Rule mutations
+  bulkUpdateRules: (ids: string[], patch: Partial<Rule>) => void;
+  bulkUpsertRules: (items: Rule[]) => void;
+  bulkRemoveRules: (ids: string[]) => void;
 
   // Side-effect mutations
   takeAlertsToWork: (alertIds: string[]) => string[]; // returns new case IDs
@@ -101,6 +121,113 @@ export const useMockStore = create<MockStore>()(
           },
         })),
 
+      bulkRemoveAlerts: (ids) =>
+        set((state) => ({
+          data: { ...state.data, alerts: state.data.alerts.filter((a) => !ids.includes(a.id)) },
+        })),
+
+      bulkRemoveCases: (ids) =>
+        set((state) => ({
+          data: { ...state.data, cases: state.data.cases.filter((c) => !ids.includes(c.id)) },
+        })),
+
+      bulkRemoveTransactions: (ids) =>
+        set((state) => ({
+          data: {
+            ...state.data,
+            transactions: state.data.transactions.filter((t) => !ids.includes(t.id)),
+          },
+        })),
+
+      bulkUpsertAlerts: (items) =>
+        set((state) => {
+          const idSet = new Set(items.map((a) => a.id));
+          const itemMap = new Map(items.map((a) => [a.id, a]));
+          const missing = items.filter((a) => !state.data.alerts.some((x) => x.id === a.id));
+          return {
+            data: {
+              ...state.data,
+              alerts: [...missing, ...state.data.alerts.map((a) => (idSet.has(a.id) ? itemMap.get(a.id)! : a))],
+            },
+          };
+        }),
+
+      bulkUpsertCases: (items) =>
+        set((state) => {
+          const idSet = new Set(items.map((c) => c.id));
+          const itemMap = new Map(items.map((c) => [c.id, c]));
+          const missing = items.filter((c) => !state.data.cases.some((x) => x.id === c.id));
+          return {
+            data: {
+              ...state.data,
+              cases: [...missing, ...state.data.cases.map((c) => (idSet.has(c.id) ? itemMap.get(c.id)! : c))],
+            },
+          };
+        }),
+
+      bulkUpsertTransactions: (items) =>
+        set((state) => {
+          const idSet = new Set(items.map((t) => t.id));
+          const itemMap = new Map(items.map((t) => [t.id, t]));
+          const missing = items.filter((t) => !state.data.transactions.some((x) => x.id === t.id));
+          return {
+            data: {
+              ...state.data,
+              transactions: [
+                ...missing,
+                ...state.data.transactions.map((t) => (idSet.has(t.id) ? itemMap.get(t.id)! : t)),
+              ],
+            },
+          };
+        }),
+
+      bulkUpdateClients: (ids, patch) =>
+        set((state) => ({
+          data: {
+            ...state.data,
+            clients: state.data.clients.map((c) => (ids.includes(c.id) ? { ...c, ...patch } : c)),
+          },
+        })),
+
+      bulkUpsertClients: (items) =>
+        set((state) => {
+          const idSet = new Set(items.map((c) => c.id));
+          const itemMap = new Map(items.map((c) => [c.id, c]));
+          const missing = items.filter((c) => !state.data.clients.some((x) => x.id === c.id));
+          return {
+            data: {
+              ...state.data,
+              clients: [...missing, ...state.data.clients.map((c) => (idSet.has(c.id) ? itemMap.get(c.id)! : c))],
+            },
+          };
+        }),
+
+      bulkUpdateRules: (ids, patch) =>
+        set((state) => ({
+          data: {
+            ...state.data,
+            rules: state.data.rules.map((r) => (ids.includes(r.id) ? { ...r, ...patch } : r)),
+          },
+        })),
+
+      bulkUpsertRules: (items) =>
+        set((state) => {
+          const idSet = new Set(items.map((r) => r.id));
+          const itemMap = new Map(items.map((r) => [r.id, r]));
+          const missing = items.filter((r) => !state.data.rules.some((x) => x.id === r.id));
+          return {
+            data: {
+              ...state.data,
+              rules: [...missing, ...state.data.rules.map((r) => (idSet.has(r.id) ? itemMap.get(r.id)! : r))],
+            },
+          };
+        }),
+
+      bulkRemoveRules: (ids) =>
+        set((state) => ({
+          data: { ...state.data, rules: state.data.rules.filter((r) => !ids.includes(r.id)) },
+        })),
+
       takeAlertsToWork: (alertIds) => {
         const { data } = get();
         const alerts = data.alerts.filter((a) => alertIds.includes(a.id));
@@ -137,15 +264,7 @@ export const useMockStore = create<MockStore>()(
           data: {
             ...state.data,
             cases: [...newCases, ...state.data.cases],
-            alerts: state.data.alerts.map((a) =>
-              alertIds.includes(a.id)
-                ? {
-                    ...a,
-                    status: "in_progress" as AlertStatus,
-                    responsibleId: currentUser.id,
-                  }
-                : a
-            ),
+            alerts: state.data.alerts.filter((a) => !alertIds.includes(a.id)),
           },
         }));
 
@@ -163,7 +282,7 @@ export const useMockStore = create<MockStore>()(
           ruleId: "manual",
           ruleName: "Ручная проверка",
           severity: (tx.priority === "high" ? "high" : "medium") as AlertSeverity,
-          status: "new" as AlertStatus,
+          status: "new" as const,
           responsibleId: currentUser.id,
         }));
 

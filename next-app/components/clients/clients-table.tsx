@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Download, Filter, Plus } from "lucide-react";
+import { Download, Filter, Lock, Play, Plus, Search, ShieldAlert } from "lucide-react";
 
 import { DataTable } from "@/components/ext/data-table";
 import { RiskBadge } from "@/components/ext/risk-badge";
@@ -22,7 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMockData, type Client, type ClientStatus, type RiskLevel } from "@/lib/mock";
+import { useMockData, useMockStore, type Client, type ClientStatus, type RiskLevel } from "@/lib/mock";
+import { toast } from "sonner";
 import { initialsFromName } from "@/lib/format";
 
 const STATUS_LABELS: Record<ClientStatus, string> = {
@@ -235,6 +236,90 @@ export function ClientsTable() {
             Добавить клиента
           </Button>
         </>
+      }
+      bulkActions={(selected, clear) => {
+        const ids = selected.map((c) => c.id);
+        return (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-background hover:bg-background/10 h-7"
+              onClick={() => {
+                toast.info(`Сценарий запущен на ${ids.length} клиентов`);
+                clear();
+              }}
+            >
+              <Play className="size-3.5" />
+              Запустить сценарий
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-background hover:bg-background/10 h-7"
+              onClick={() => {
+                const snapshot = useMockStore.getState().data.clients.filter((c) => ids.includes(c.id));
+                useMockStore.getState().bulkUpdateClients(ids, { status: "review" });
+                toast.success(`${ids.length} клиентов на проверке`, {
+                  action: {
+                    label: "Отменить",
+                    onClick: () => useMockStore.getState().bulkUpsertClients(snapshot),
+                  },
+                });
+                clear();
+              }}
+            >
+              <Search className="size-3.5" />
+              На проверку
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-background hover:bg-background/10 h-7"
+              onClick={() => {
+                const snapshot = useMockStore.getState().data.clients.filter((c) => ids.includes(c.id));
+                useMockStore.getState().bulkUpdateClients(ids, { status: "edd" });
+                toast.success(`${ids.length} клиентов переведены в EDD`, {
+                  action: {
+                    label: "Отменить",
+                    onClick: () => useMockStore.getState().bulkUpsertClients(snapshot),
+                  },
+                });
+                clear();
+              }}
+            >
+              <ShieldAlert className="size-3.5" />
+              В EDD
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-400 hover:bg-red-400/10 h-7"
+              onClick={() => {
+                const snapshot = useMockStore.getState().data.clients.filter((c) => ids.includes(c.id));
+                useMockStore.getState().bulkUpdateClients(ids, { status: "blocked" });
+                toast.warning(`${ids.length} клиентов заблокированы`, {
+                  action: {
+                    label: "Отменить",
+                    onClick: () => useMockStore.getState().bulkUpsertClients(snapshot),
+                  },
+                });
+                clear();
+              }}
+            >
+              <Lock className="size-3.5" />
+              Заблокировать
+            </Button>
+          </>
+        );
+      }}
+      emptyAction={
+        <Button asChild size="sm" variant="outline">
+          <Link href="/clients/new">
+            <Plus className="size-4" />
+            Добавить клиента
+          </Link>
+        </Button>
       }
     />
   );

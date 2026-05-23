@@ -30,6 +30,7 @@ interface DataTableProps<T> {
   filters?: React.ReactNode;
   toolbar?: React.ReactNode;
   emptyMessage?: string;
+  emptyAction?: React.ReactNode;
   onRowClick?: (row: T) => void;
   pageSize?: number;
   rowClassName?: (row: T) => string;
@@ -60,6 +61,7 @@ export function DataTable<T>({
   filters,
   toolbar,
   emptyMessage = "Ничего не найдено",
+  emptyAction,
   onRowClick,
   pageSize = 25,
   rowClassName,
@@ -216,8 +218,9 @@ export function DataTable<T>({
               );
             })
           ) : (
-            <div className="px-6 py-20 text-center text-[14px] text-muted-foreground">
-              {emptyMessage}
+            <div className="px-6 py-20 text-center flex flex-col items-center gap-4">
+              <p className="text-[14px] text-muted-foreground">{emptyMessage}</p>
+              {emptyAction}
             </div>
           )}
         </div>
